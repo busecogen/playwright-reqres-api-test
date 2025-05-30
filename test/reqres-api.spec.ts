@@ -1,13 +1,30 @@
 import { test, expect, request, APIRequestContext } from '@playwright/test';
 
-test.describe('ReqRes API tests', () => {
+const constants = {
+    baseUrl: 'https://reqres.in/api',
+    headers: {
+        apiKey: { 'x-api-key': 'reqres-free-v1' },
+        jsonContent: { 'Content-Type': 'application/json' },
+    },
+    loginPayload: {
+        email: 'eve.holt@reqres.in',
+        password: 'cityslicka',
+    },
+    createUserPayload: {
+        name: 'John Doe',
+        job: 'QA Tester',
+    },
+    userIdToDelete: 2,
+    usersPage: 2,
+};
 
+test.describe('ReqRes API tests', () => {
     let apiContext: APIRequestContext;
 
     test.beforeAll(async () => {
         apiContext = await request.newContext({
             extraHTTPHeaders: {
-                'x-api-key': 'reqres-free-v1',
+                ...constants.headers.apiKey,
             },
         });
     });
@@ -17,13 +34,10 @@ test.describe('ReqRes API tests', () => {
     });
 
     test('Login API should return 200 and token', async () => {
-        const response = await apiContext.post('https://reqres.in/api/login', {
-            data: {
-                email: 'eve.holt@reqres.in',
-                password: 'cityslicka',
-            },
+        const response = await apiContext.post(`${constants.baseUrl}/login`, {
+            data: constants.loginPayload,
             headers: {
-                'Content-Type': 'application/json',
+                ...constants.headers.jsonContent,
             },
         });
 
@@ -36,17 +50,17 @@ test.describe('ReqRes API tests', () => {
     });
 
     test('List users API should return 200 and users list', async () => {
-        const response = await apiContext.get('https://reqres.in/api/users?page=2');
+        const response = await apiContext.get(`${constants.baseUrl}/users?page=${constants.usersPage}`);
         expect(response.status()).toBe(200);
 
         const data = await response.json();
         expect(data.data).toBeDefined();
         expect(Array.isArray(data.data)).toBe(true);
-        expect(data.page).toBe(2);
+        expect(data.page).toBe(constants.usersPage);
     });
 
     test('Fetch Users API should return 200 and at least 6 users', async () => {
-        const response = await apiContext.get('https://reqres.in/api/users?page=2');
+        const response = await apiContext.get(`${constants.baseUrl}/users?page=${constants.usersPage}`);
         expect(response.status()).toBe(200);
 
         const responseBody = await response.json();
@@ -57,15 +71,10 @@ test.describe('ReqRes API tests', () => {
     });
 
     test('Create User should return 201 and response contains id and createdAt', async () => {
-        const createPayload = {
-            name: 'John Doe',
-            job: 'QA Tester',
-        };
-
-        const response = await apiContext.post('https://reqres.in/api/users', {
-            data: createPayload,
+        const response = await apiContext.post(`${constants.baseUrl}/users`, {
+            data: constants.createUserPayload,
             headers: {
-                'Content-Type': 'application/json',
+                ...constants.headers.jsonContent,
             },
         });
 
@@ -79,12 +88,8 @@ test.describe('ReqRes API tests', () => {
         expect(typeof responseBody.createdAt).toBe('string');
     });
 
-
     test('Delete User API should return 204', async () => {
-        const response = await apiContext.delete('https://reqres.in/api/users/2');
+        const response = await apiContext.delete(`${constants.baseUrl}/users/${constants.userIdToDelete}`);
         expect(response.status()).toBe(204);
     });
-
 });
-
-
